@@ -5,36 +5,37 @@
 <title>Latent interpolation · 10 pairs</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  :root { color-scheme: dark; }
-  html, body { height: 100%; margin: 0; background: #0b0d12; color: #e4e7ec;
+  :root { color-scheme: light; }
+  html, body { height: 100%; margin: 0; background: #ffffff; color: #0f172a;
                 font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
-           background: #1f2937; color: #c7d2fe; font-size: 11px; letter-spacing: .02em; }
-  .panel { background: rgba(17,21,29,0.92); border: 1px solid #1f2937; border-radius: 12px; }
+           background: #eef2ff; color: #4338ca; font-size: 11px; letter-spacing: .02em; }
+  .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
   pre.text { white-space: pre-wrap; word-wrap: break-word; line-height: 1.5;
-              font-size: 13px; background: #0f1218; border: 1px solid #1f2937;
+              font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a;
               border-radius: 8px; padding: 12px 14px; margin: 0;
               max-height: 38vh; overflow: auto; }
-  input[type=range] { accent-color: #818cf8; }
-  select { background: #0f1218; color: #e4e7ec; border: 1px solid #1f2937;
+  input[type=range] { accent-color: #6366f1; }
+  select { background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;
              border-radius: 8px; padding: 6px 10px; font-size: 13px; }
   .alpha-tick { font-size: 10px; color: #64748b; }
 </style>
 </head>
 <body class="min-h-screen">
-  <header class="px-6 py-4 flex items-center gap-4 border-b border-slate-800">
+  <header class="px-6 py-4 flex items-center gap-4 border-b border-slate-200">
     <div class="text-base font-semibold tracking-tight">Latent pair interpolation</div>
     <span class="pill">pairs <span class="mono">10</span></span>
     <span class="pill">steps <span class="mono">11</span></span>
-    <div class="ml-auto text-xs text-slate-400 mono truncate max-w-[44vw]" title="outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt">outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt</div>
+    <div class="ml-auto text-xs text-slate-500 mono truncate max-w-[44vw]" title="outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt">outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt</div>
   </header>
 
   <main class="max-w-5xl mx-auto px-6 py-6 flex flex-col gap-5">
     <!-- controls -->
     <section class="panel p-4 flex flex-col gap-3">
       <div class="flex items-center gap-4 flex-wrap">
-        <label class="text-sm text-slate-300">Pair</label>
+        <label class="text-sm text-slate-700">Pair</label>
         <select id="pair-select"></select>
         <span id="pair-info" class="text-xs text-slate-500 mono"></span>
       </div>
@@ -43,32 +44,28 @@
         <input id="alpha-slider" type="range" min="0" max="10" step="1" value="0" class="flex-1" />
         <span class="alpha-tick mono">B (α=1)</span>
       </div>
-      <div class="flex items-center justify-between text-xs text-slate-400">
-        <span>step <span id="step-idx" class="mono text-slate-200">0</span> / 10</span>
-        <span>α = <span id="alpha-val" class="mono text-indigo-300">0.000</span></span>
+      <div class="flex items-center justify-between text-xs text-slate-600">
+        <span>step <span id="step-idx" class="mono text-slate-900">0</span> / 10</span>
+        <span>α = <span id="alpha-val" class="mono text-indigo-600">0.000</span></span>
       </div>
     </section>
 
-    <!-- endpoints -->
+    <!-- endpoint reconstructions -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="panel p-4">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-2">Endpoint A — Ground truth</div>
-        <pre id="gt-a" class="text mono"></pre>
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 mt-3 mb-2">Endpoint A — Recon (α=0)</div>
+        <div class="text-[11px] uppercase tracking-wider text-slate-600 mb-2">Sample A — Recon (α=0)</div>
         <pre id="recon-a" class="text mono"></pre>
       </div>
       <div class="panel p-4">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-2">Endpoint B — Ground truth</div>
-        <pre id="gt-b" class="text mono"></pre>
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 mt-3 mb-2">Endpoint B — Recon (α=1)</div>
+        <div class="text-[11px] uppercase tracking-wider text-slate-600 mb-2">Sample B — Recon (α=1)</div>
         <pre id="recon-b" class="text mono"></pre>
       </div>
     </section>
 
-    <!-- interpolated decode -->
+    <!-- interpolated generation -->
     <section class="panel p-4">
       <div class="flex items-center justify-between mb-2">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400">Decoded from interpolated latent</div>
+        <div class="text-[11px] uppercase tracking-wider text-slate-600">Interpolated generation</div>
         <div class="text-[11px] text-slate-500 mono">latent = (1−α)·A + α·B</div>
       </div>
       <pre id="interp-text" class="text mono" style="max-height: 50vh;"></pre>
@@ -84,8 +81,6 @@ const sel = document.getElementById("pair-select");
 const slider = document.getElementById("alpha-slider");
 const stepEl = document.getElementById("step-idx");
 const alphaEl = document.getElementById("alpha-val");
-const gtA = document.getElementById("gt-a");
-const gtB = document.getElementById("gt-b");
 const reconA = document.getElementById("recon-a");
 const reconB = document.getElementById("recon-b");
 const interpEl = document.getElementById("interp-text");
@@ -104,8 +99,6 @@ function render() {
   const alpha = N_STEPS > 1 ? (k / (N_STEPS - 1)) : 0;
   stepEl.textContent = String(k);
   alphaEl.textContent = alpha.toFixed(3);
-  gtA.textContent = p.gt_a || "(empty)";
-  gtB.textContent = p.gt_b || "(empty)";
   // recon at endpoints is texts[0] (α=0) and texts[N_STEPS-1] (α=1)
   reconA.textContent = (p.texts && p.texts[0]) || "(empty)";
   reconB.textContent = (p.texts && p.texts[N_STEPS - 1]) || "(empty)";
