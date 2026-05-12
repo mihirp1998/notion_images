@@ -31,7 +31,7 @@
     <div class="ml-auto text-xs text-slate-500 mono truncate max-w-[44vw]" title="outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt">outputs/42788606622_prev_tok_drop_p0p1_best_enc_lr_per_dec_below_25m_sweep_goofy_wright_May-10--22-43-26/latest_checkpoint.pt</div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-6 flex flex-col gap-5">
+  <main class="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-5">
     <!-- controls -->
     <section class="panel p-4 flex flex-col gap-3">
       <div class="flex items-center gap-4 flex-wrap">
@@ -54,25 +54,23 @@
       </div>
     </section>
 
-    <!-- endpoint reconstructions -->
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="panel p-4">
+    <!-- samples + interpolated generation, side by side -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+      <div class="panel p-4 flex flex-col">
         <div class="text-[11px] uppercase tracking-wider text-slate-600 mb-2">Sample A — Recon (α=0)</div>
-        <pre id="recon-a" class="text mono"></pre>
+        <pre id="recon-a" class="text mono flex-1" style="max-height: 50vh;"></pre>
       </div>
-      <div class="panel p-4">
+      <div class="panel p-4 flex flex-col" style="border-color: #c7d2fe; box-shadow: 0 1px 6px rgba(99,102,241,0.12);">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-[11px] uppercase tracking-wider text-indigo-600">Interpolated generation</div>
+          <div class="text-[11px] text-slate-500 mono">(1−α)·A + α·B</div>
+        </div>
+        <pre id="interp-text" class="text mono flex-1" style="max-height: 50vh;"></pre>
+      </div>
+      <div class="panel p-4 flex flex-col">
         <div class="text-[11px] uppercase tracking-wider text-slate-600 mb-2">Sample B — Recon (α=1)</div>
-        <pre id="recon-b" class="text mono"></pre>
+        <pre id="recon-b" class="text mono flex-1" style="max-height: 50vh;"></pre>
       </div>
-    </section>
-
-    <!-- interpolated generation -->
-    <section class="panel p-4">
-      <div class="flex items-center justify-between mb-2">
-        <div class="text-[11px] uppercase tracking-wider text-slate-600">Interpolated generation</div>
-        <div class="text-[11px] text-slate-500 mono">latent = (1−α)·A + α·B</div>
-      </div>
-      <pre id="interp-text" class="text mono" style="max-height: 50vh;"></pre>
     </section>
   </main>
 
