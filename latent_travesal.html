@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Latent traversal · TSNE 3D</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden;
+    background: #f5f5fa;
+    color: #1a1a2e;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  body {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 110%, #ebebf5 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 10% 0%, #f0f0f8 0%, transparent 55%),
+      #f5f5fa;
+  }
+  #canvas { position: fixed; inset: 0; display: block; cursor: grab; }
+  #canvas:active { cursor: grabbing; }
+
+  /* Header */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 22px;
+    background: linear-gradient(to bottom, rgba(245,245,250,0.90), rgba(245,245,250,0));
+    pointer-events: none; z-index: 5;
+  }
+  .header > * { pointer-events: auto; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand .title {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+    color: #0f0f1a;
+  }
+  .brand .sub {
+    font-size: 11px; color: #6a6a85; letter-spacing: 0.04em;
+  }
+  .pills { display: flex; gap: 6px; margin-left: 8px; }
+  .pill {
+    font-size: 10.5px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px;
+    background: rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.10);
+    color: #5a5a78;
+  }
+  .pill b { color: #0f0f1a; font-weight: 600; letter-spacing: 0; text-transform: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; margin-left: 4px; }
+  .ckpt {
+    margin-left: auto; font-size: 10.5px; color: #9090aa;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    max-width: 40vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Footer controls */
+  .controls {
+    position: fixed; left: 50%; bottom: 24px;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 14px;
+    background: rgba(248,248,252,0.88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 999px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    z-index: 10;
+  }
+  .controls button {
+    background: transparent; border: none; color: #1a1a2e;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 120ms ease;
+  }
+  .controls button:hover { background: rgba(0,0,0,0.06); }
+  .controls button.primary {
+    background: rgba(26,26,46,0.90); color: #f5f5fa;
+    width: 36px; height: 36px;
+  }
+  .controls button.primary:hover { background: #1a1a2e; }
+  .controls .label {
+    font-size: 10.5px; color: #6a6a85; letter-spacing: 0.06em; text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .controls input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 140px; height: 4px; background: rgba(0,0,0,0.14); border-radius: 2px;
+    outline: none;
+  }
+  .controls input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #2a1a5e; cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .controls .divider { width: 1px; height: 22px; background: rgba(0,0,0,0.10); }
+  .controls .idx {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: #5a5a78;
+    min-width: 50px; text-align: right;
+  }
+
+  /* Dialog bubble */
+  #leader-svg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 6;
+  }
+  .bubble {
+    position: fixed; z-index: 7;
+    max-width: 380px; min-width: 240px;
+    padding: 14px 16px 15px 16px;
+    background: rgba(248,248,252,0.90);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 14px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.8) inset,
+      0 18px 50px -10px rgba(0,0,0,0.12),
+      0 4px 16px rgba(0,0,0,0.07);
+    color: #1a1a2e;
+    transition: opacity 240ms ease, transform 240ms cubic-bezier(.2,.7,.2,1);
+    transform-origin: var(--ox, 0%) var(--oy, 100%);
+    will-change: transform, opacity, left, top;
+  }
+  .bubble.entering { opacity: 0; transform: scale(0.92) translateY(6px); }
+  .bubble .bubble-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #6a6a85;
+    margin-bottom: 8px;
+  }
+  .bubble .bubble-head .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent, #cc4488);
+    box-shadow: 0 0 10px var(--accent, #cc4488), 0 0 0 3px rgba(200,60,130,0.15);
+    flex: 0 0 auto;
+  }
+  .bubble .bubble-head .idx {
+    color: #0f0f1a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .bubble .bubble-head .spacer { flex: 1; }
+  .bubble .bubble-head .meta {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #9090aa; letter-spacing: 0.03em; text-transform: none; font-size: 10px;
+  }
+  .bubble .text {
+    font-family: "Iowan Old Style", "Source Serif Pro", ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 13.5px; line-height: 1.55;
+    color: #1a1a2e;
+    max-height: 230px; overflow: auto;
+    white-space: pre-wrap; word-wrap: break-word;
+    padding-right: 4px;
+    text-wrap: pretty;
+  }
+  .bubble .text::-webkit-scrollbar { width: 6px; }
+  .bubble .text::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.14); border-radius: 3px; }
+
+  /* legend */
+  .legend {
+    position: fixed; right: 18px; bottom: 86px; z-index: 5;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #6a6a85;
+    pointer-events: none;
+  }
+  .legend .gradient {
+    width: 10px; height: 110px;
+    border-radius: 5px;
+    background: linear-gradient(to top,
+      #3c1e6b 0%, #5a1e8a 14%,
+      #9a1e84 32%, #d83c6a 48%,
+      #ff7d3c 64%, #ffc83c 78%,
+      #f0ff8c 92%, #c8f0a0 100%);
+    box-shadow: 0 0 12px rgba(200,80,120,0.20);
+  }
+  .legend .lab { display: flex; gap: 8px; align-items: center; font-size: 9.5px; }
+  .legend .col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .legend .row { display: flex; flex-direction: column; justify-content: space-between; height: 110px; align-items: flex-end; font-size: 9px; color: #9090aa; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<svg id="leader-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<div class="header">
+  <div class="brand">
+    <span class="title">Latent Traversal</span>
+    <span class="sub">t-SNE · 3D projection</span>
+  </div>
+  <div class="pills">
+    <span class="pill">n<b id="hd-n">—</b></span>
+    <span class="pill">latent<b id="hd-shape">—</b></span>
+    <span class="pill">iMAUVE<b id="hd-imauve">—</b></span>
+  </div>
+  <div class="ckpt" id="hd-ckpt" title=""></div>
+</div>
+
+<div class="bubble" id="bubble" style="left: 40px; top: 120px;">
+  <div class="bubble-head">
+    <span class="dot"></span>
+    <span>generated</span>
+    <span class="idx" id="cur-idx">—</span>
+    <span class="spacer"></span>
+    <span class="meta">temp = 0</span>
+  </div>
+  <div class="text" id="text"></div>
+</div>
+
+<div class="legend">
+  <div class="lab">depth (t‑SNE 3)</div>
+  <div style="display:flex; gap:8px;">
+    <div class="row"><span>+</span><span>0</span><span>−</span></div>
+    <div class="gradient"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="btn-prev" title="Previous">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+  </button>
+  <button id="btn-play" class="primary" title="Play / Pause">
+    <svg id="ic-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+    <svg id="ic-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 5v14l12-7z"/></svg>
+  </button>
+  <button id="btn-next" title="Next">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+  </button>
+  <div class="divider"></div>
+  <span class="label">Speed</span>
+  <input id="speed" type="range" min="500" max="4500" step="100" value="2200" />
+  <div class="divider"></div>
+  <span class="idx" id="cur-idx-2">—</span>
+</div>
+
+<script src="data.js"></script>
+<script src="https://unpkg.com/three@0.137.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+<script src="scene.js"></script>
+</body>
+</html>
