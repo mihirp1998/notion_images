@@ -67,18 +67,17 @@
   }
 
   // ----- color palette -----
-  // map t in [0,1] to a vivid rainbow-magma-ish color (inspired by the source video)
+  // saturated, mid-to-dark tones designed to read on a light background
   function palette(t) {
-    // piecewise-linear over keyframes
     const stops = [
-      [0.00, [ 60, 30,110]], // deep indigo
-      [0.16, [110, 30,160]], // violet
-      [0.30, [180, 30,180]], // magenta
-      [0.45, [220, 60,140]], // pink
-      [0.60, [255,120, 80]], // coral
-      [0.72, [255,180, 60]], // amber
-      [0.85, [255,240,140]], // pale yellow
-      [1.00, [240,255,220]], // near-white cyan
+      [0.00, [ 42, 17, 88]],  // deep indigo
+      [0.16, [ 74, 26,138]],  // violet
+      [0.30, [142, 28,132]],  // magenta
+      [0.45, [201, 58,120]],  // pink
+      [0.60, [232, 95, 58]],  // coral
+      [0.72, [217,147, 28]],  // amber
+      [0.85, [154,110, 16]],  // dark gold
+      [1.00, [ 94, 68,  8]],  // rust
     ];
     t = Math.max(0, Math.min(1, t));
     for (let i = 1; i < stops.length; i++) {
@@ -110,7 +109,7 @@
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.setClearColor(0x000000, 0); // body provides bg gradient
+  renderer.setClearColor(0xfafaf7, 0); // body provides bg gradient
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -159,15 +158,15 @@
     outer: 'rgba(255,255,255,0)',
   });
 
-  // ----- ground plane (subtle radial gradient floor) -----
+  // ----- ground plane (subtle vignette floor) -----
   {
     const fc = document.createElement('canvas');
     fc.width = fc.height = 512;
     const fg = fc.getContext('2d');
     const grd = fg.createRadialGradient(256, 256, 20, 256, 256, 256);
-    grd.addColorStop(0, 'rgba(90,75,135,0.55)');
-    grd.addColorStop(0.45, 'rgba(40,35,70,0.25)');
-    grd.addColorStop(1, 'rgba(10,10,20,0)');
+    grd.addColorStop(0, 'rgba(40,30,60,0.18)');
+    grd.addColorStop(0.5, 'rgba(40,30,60,0.07)');
+    grd.addColorStop(1, 'rgba(40,30,60,0)');
     fg.fillStyle = grd;
     fg.fillRect(0, 0, 512, 512);
     const floorTex = new THREE.CanvasTexture(fc);
@@ -175,7 +174,6 @@
       new THREE.PlaneGeometry(280, 280),
       new THREE.MeshBasicMaterial({
         map: floorTex, transparent: true, depthWrite: false,
-        blending: THREE.AdditiveBlending,
       })
     );
     floor.rotation.x = -Math.PI / 2;
@@ -197,12 +195,12 @@
   cloudGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const cloudMat = new THREE.PointsMaterial({
-    size: 3.4,
+    size: 3.0,
     map: pointTex,
     vertexColors: true,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   const cloud = new THREE.Points(cloudGeo, cloudMat);
@@ -216,10 +214,12 @@
     shadowPositions[i*3]   = X[i];
     shadowPositions[i*3+1] = groundY;
     shadowPositions[i*3+2] = Z[i];
-    // tint the shadow with a darkened version of the point color so it still hints at hue
-    shadowColors[i*3]   = colors[i*3]   * 0.35;
-    shadowColors[i*3+1] = colors[i*3+1] * 0.30;
-    shadowColors[i*3+2] = colors[i*3+2] * 0.45;
+    // shadow is a desaturated darker version of the point
+    const r = colors[i*3], g = colors[i*3+1], b = colors[i*3+2];
+    const lum = 0.3 * r + 0.5 * g + 0.2 * b;
+    shadowColors[i*3]   = lum * 0.35 + 0.05;
+    shadowColors[i*3+1] = lum * 0.30 + 0.05;
+    shadowColors[i*3+2] = lum * 0.40 + 0.07;
   }
   shadowGeo.setAttribute('position', new THREE.BufferAttribute(shadowPositions, 3));
   shadowGeo.setAttribute('color', new THREE.BufferAttribute(shadowColors, 3));
@@ -229,8 +229,8 @@
     vertexColors: true,
     transparent: true,
     depthWrite: false,
-    opacity: 0.55,
-    blending: THREE.AdditiveBlending,
+    opacity: 0.4,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   const shadowPoints = new THREE.Points(shadowGeo, shadowMat);
@@ -240,26 +240,26 @@
   const cursorGeo = new THREE.BufferGeometry();
   cursorGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0,0,0]), 3));
   const cursorMat = new THREE.PointsMaterial({
-    size: 14,
+    size: 16,
     map: pointTex,
-    color: 0xffffff,
+    color: 0xc93a78,
     transparent: true,
     depthWrite: false,
-    opacity: 0.95,
-    blending: THREE.AdditiveBlending,
+    opacity: 0.65,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   const cursor = new THREE.Points(cursorGeo, cursorMat);
   scene.add(cursor);
 
   const cursorCoreMat = new THREE.PointsMaterial({
-    size: 5,
+    size: 6,
     map: pointTex,
-    color: 0xffffff,
+    color: 0x1a1a22,
     transparent: true,
     depthWrite: false,
     opacity: 1.0,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   const cursorCore = new THREE.Points(cursorGeo.clone(), cursorCoreMat);
@@ -271,10 +271,10 @@
   {
     const g = ringTexCanvas.getContext('2d');
     g.lineWidth = 4;
-    g.strokeStyle = 'rgba(255,255,255,0.95)';
+    g.strokeStyle = 'rgba(26,26,34,0.9)';
     g.beginPath(); g.arc(64, 64, 50, 0, Math.PI*2); g.stroke();
-    g.lineWidth = 2;
-    g.strokeStyle = 'rgba(255,255,255,0.4)';
+    g.lineWidth = 1.5;
+    g.strokeStyle = 'rgba(26,26,34,0.35)';
     g.beginPath(); g.arc(64, 64, 58, 0, Math.PI*2); g.stroke();
   }
   const ringTex = new THREE.CanvasTexture(ringTexCanvas);
@@ -283,8 +283,8 @@
     color: 0xffffff,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    opacity: 0.9,
+    blending: THREE.NormalBlending,
+    opacity: 0.85,
   });
   const ring = new THREE.Sprite(ringMat);
   ring.scale.set(10, 10, 1);
@@ -299,8 +299,8 @@
   trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
   trailGeo.setAttribute('color', new THREE.BufferAttribute(trailCol, 3));
   const trailMat = new THREE.LineBasicMaterial({
-    vertexColors: true, transparent: true, opacity: 0.7,
-    blending: THREE.AdditiveBlending, depthWrite: false,
+    vertexColors: true, transparent: true, opacity: 0.6,
+    blending: THREE.NormalBlending, depthWrite: false,
   });
   const trail = new THREE.Line(trailGeo, trailMat);
   trail.frustumCulled = false;
@@ -569,7 +569,7 @@
     controls.update();
     // pulse cursor halo + ring
     const pulse = 0.9 + Math.sin(t * 3.2) * 0.18;
-    cursorMat.size = 14 * pulse;
+    cursorMat.size = 16 * pulse;
     ring.scale.set(9 + Math.sin(t * 2) * 1.2, 9 + Math.sin(t * 2) * 1.2, 1);
     ring.material.rotation = t * 0.4;
     ringMat.opacity = 0.55 + Math.sin(t * 2) * 0.2;
